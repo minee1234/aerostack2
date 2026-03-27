@@ -3,7 +3,9 @@
     "allow": [
       "Bash(find /e/git/aerostack2/as2_core/src -type f -name \"*.cpp\" -exec wc -l {})",
       "Bash(ls -lh /e/git/aerostack2/as2_behaviors/as2_behaviors_motion/*/include/)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(ls:*)",
+      "Bash(xargs basename:*)"
     ]
   }
 }
