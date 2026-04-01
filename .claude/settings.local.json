@@ -5,7 +5,14 @@
       "Bash(ls -lh /e/git/aerostack2/as2_behaviors/as2_behaviors_motion/*/include/)",
       "Bash(xargs grep:*)",
       "Bash(ls:*)",
-      "Bash(xargs basename:*)"
+      "Bash(xargs basename:*)",
+      "Bash(find E:/git/aerostack2/as2_behavior_tree -name *.xml)",
+      "Bash(xargs cat:*)",
+      "Bash(grep -rl \"mavlink\\\\|MAVLink\\\\|MAVLINK\\\\|mavros\\\\|MAVROS\\\\|sitl\\\\|SITL\\\\|px4\\\\|PX4\\\\|ardupilot\\\\|ArduPilot\" E:/git/aerostack2 --include=*.cpp --include=*.hpp --include=*.py --include=*.yaml --include=*.xml --include=*.md)",
+      "Bash(grep -rl \"mavlink\\\\|MAVLink\\\\|mavros\\\\|px4\\\\|PX4\\\\|sitl\\\\|SITL\" E:/git/aerostack2 --include=*.cpp --include=*.hpp --include=*.py)",
+      "Bash(grep -r \"mavlink\\\\|MAVLink\\\\|mavros\\\\|MAVROS\" E:/git/aerostack2 --include=*.repos --include=*.yaml --include=*.md)",
+      "Bash(find E:/git/aerostack2 -name more_platforms.repos -o -name *.repos)",
+      "Bash(grep -r \"as2_platform_pixhawk\\\\|as2_platform_mavlink\" E:/git/aerostack2 --include=*.repos --include=*.yaml --include=*.md)"
     ]
   }
 }
