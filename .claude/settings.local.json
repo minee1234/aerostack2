@@ -17,7 +17,11 @@
       "Bash(do echo:*)",
       "Read(//d/git/aerostack2/**)",
       "Bash(done)",
-      "Bash(xargs wc:*)"
+      "Bash(xargs wc:*)",
+      "Bash(wc:*)",
+      "Bash(find /d/git/aerostack2 -type f -name *.py -exec wc -l {})",
+      "Bash(2)",
+      "Bash(git -C /d/git/aerostack2 log --oneline)"
     ]
   }
 }
