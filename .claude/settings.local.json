@@ -21,7 +21,9 @@
       "Bash(wc:*)",
       "Bash(find /d/git/aerostack2 -type f -name *.py -exec wc -l {})",
       "Bash(2)",
-      "Bash(git -C /d/git/aerostack2 log --oneline)"
+      "Bash(git -C /d/git/aerostack2 log --oneline)",
+      "Bash(grep -E '^/e/git/aerostack2/[^/]+$')",
+      "Bash(grep -r \"^namespace\" /e/git/aerostack2/as2_python_api/as2_python_api/*.py)"
     ]
   }
 }
