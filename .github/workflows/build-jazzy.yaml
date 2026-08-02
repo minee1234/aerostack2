@@ -2,7 +2,10 @@ name: jazzy
 
 on:
   pull_request:
-    types: [review_requested, ready_for_review]
+    types: [opened, synchronize, reopened, review_requested, ready_for_review]
+    branches:
+      - main
+  push:
     branches:
       - main
 
@@ -33,8 +36,8 @@ jobs:
             as2_behavior_tree
             as2_behavior
             as2_behaviors_motion
+            as2_behaviors_object_perception
             as2_behaviors_path_planning
-            as2_behaviors_perception
             as2_behaviors_platform
             as2_behaviors_swarm_flocking
             as2_behaviors_trajectory_generation
