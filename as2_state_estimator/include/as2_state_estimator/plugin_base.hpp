@@ -74,7 +74,21 @@ private:
   tf2::Transform odom_to_base_ = tf2::Transform::getIdentity();
 
 public:
+  /**
+   * @brief Construct the State Estimator Base object. The plugin is only
+   * usable after setup().
+   */
   StateEstimatorBase() {}
+
+  /**
+   * @brief Wire the plugin to its node, TF handler and broadcasters, read the
+   * frame parameters and hand control to on_setup().
+   *
+   * @param node Node hosting the plugin.
+   * @param tf_handler TF handler shared with the state estimator node.
+   * @param tf_broadcaster Broadcaster for the dynamic transforms.
+   * @param static_tf_broadcaster Broadcaster for the static transforms.
+   */
   void setup(
     as2::Node * node,
     std::shared_ptr<as2::tf::TfHandler> tf_handler,
@@ -91,24 +105,28 @@ public:
     pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
       as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos);
 
-    // node_ptr_->declare_parameter<std::string>("base_frame", "base_link");
-    // node_ptr_->declare_parameter<std::string>("global_ref_frame", "earth");
-    // node_ptr_->declare_parameter<std::string>("odom_frame", "odom");
-    // node_ptr_->declare_parameter<std::string>("map_frame", "map");
-
-    node_ptr_->get_parameter("base_frame", base_frame_id_);
-    node_ptr_->get_parameter("global_ref_frame", earth_frame_id_);
-    node_ptr_->get_parameter("odom_frame", odom_frame_id_);
-    node_ptr_->get_parameter("map_frame", map_frame_id_);
-
-    base_frame_id_ = as2::tf::generateTfName(node_ptr_, base_frame_id_);
-    odom_frame_id_ = as2::tf::generateTfName(node_ptr_, odom_frame_id_);
-    map_frame_id_ = as2::tf::generateTfName(node_ptr_, map_frame_id_);
-    // !! WATCHOUT : earth_frame_id_ is not generated because it is a global frame
+    // Declared, read and namespaced once by as2::Node, for the whole stack
+    earth_frame_id_ = node_ptr_->getEarthFrameId();
+    base_frame_id_ = node_ptr_->getBaseFrameId();
+    odom_frame_id_ = node_ptr_->getOdomFrameId();
+    map_frame_id_ = node_ptr_->getMapFrameId();
 
     on_setup();
   }
+  /**
+   * @brief Set the plugin up, once its node and broadcasters are available.
+   */
   virtual void on_setup() = 0;
+
+  /**
+   * @brief Get the earth to map transform of this estimator.
+   *
+   * The default implementation warns and returns the identity, so a plugin
+   * that does not localize against a map still produces a valid TF tree.
+   *
+   * @param transform Output. Earth to map transform.
+   * @return true if the transform is valid.
+   */
   virtual bool get_earth_to_map_transform(geometry_msgs::msg::TransformStamped & transform)
   {
     RCLCPP_WARN(
@@ -125,6 +143,11 @@ protected:
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
 
+  /**
+   * @brief Cache the earth to map transform when the given one is that link.
+   *
+   * @param transform Transform about to be published.
+   */
   void check_standard_transform(const geometry_msgs::msg::TransformStamped & transform)
   {
     if (transform.header.frame_id == get_earth_frame() &&
@@ -140,32 +163,92 @@ protected:
     }
   }
 
+  /**
+   * @brief Broadcast a dynamic transform.
+   *
+   * @param transform Transform to broadcast.
+   */
   inline void publish_transform(const geometry_msgs::msg::TransformStamped & transform)
   {
     tf_broadcaster_->sendTransform(transform);
   }
+  /**
+   * @brief Broadcast a static transform.
+   *
+   * @param transform Transform to broadcast.
+   */
   inline void publish_static_transform(const geometry_msgs::msg::TransformStamped & transform)
   {
     static_tf_broadcaster_->sendTransform(transform);
   }
 
+  /**
+   * @brief Publish the estimated twist of the vehicle.
+   *
+   * @param twist Twist to publish.
+   */
   inline void publish_twist(const geometry_msgs::msg::TwistStamped & twist)
   {
     twist_pub_->publish(twist);
   }
+  /**
+   * @brief Publish the estimated pose of the vehicle.
+   *
+   * @param pose Pose to publish.
+   */
   inline void publish_pose(const geometry_msgs::msg::PoseStamped & pose)
   {
     pose_pub_->publish(pose);
   }
 
+  /**
+   * @brief Global earth frame id, shared by every robot.
+   *
+   * @return Frame id.
+   */
   inline const std::string & get_earth_frame() const {return earth_frame_id_;}
+  /**
+   * @brief Namespaced map frame id of the robot.
+   *
+   * @return Frame id.
+   */
   inline const std::string & get_map_frame() const {return map_frame_id_;}
+  /**
+   * @brief Namespaced odom frame id of the robot.
+   *
+   * @return Frame id.
+   */
   inline const std::string & get_odom_frame() const {return odom_frame_id_;}
+  /**
+   * @brief Namespaced base_link frame id of the robot.
+   *
+   * @return Frame id.
+   */
   inline const std::string & get_base_frame() const {return base_frame_id_;}
 
+  /**
+   * @brief Override the earth frame id, for a plugin with its own convention.
+   *
+   * @param frame Frame id to use.
+   */
   inline void set_earth_frame(const std::string & frame) {earth_frame_id_ = frame;}
+  /**
+   * @brief Override the map frame id, for a plugin with its own convention.
+   *
+   * @param frame Frame id to use.
+   */
   inline void set_map_frame(const std::string & frame) {map_frame_id_ = frame;}
+  /**
+   * @brief Override the odom frame id, for a plugin with its own convention.
+   *
+   * @param frame Frame id to use.
+   */
   inline void set_odom_frame(const std::string & frame) {odom_frame_id_ = frame;}
+  /**
+   * @brief Override the base_link frame id, for a plugin with its own convention.
+   *
+   * @param frame Frame id to use.
+   */
   inline void set_base_frame(const std::string & frame) {base_frame_id_ = frame;}
 
   tf2::Transform odom_to_baselink;
@@ -176,6 +259,12 @@ protected:
   bool static_transforms_published_ = false;
   rclcpp::TimerBase::SharedPtr static_transforms_timer_;
 
+  /**
+   * @brief Get the earth to map transform as a tf2::Transform.
+   *
+   * @param earth_to_map Output. Earth to map transform.
+   * @return true if the transform is valid.
+   */
   bool get_earth_to_map_transform(tf2::Transform & earth_to_map)
   {
     geometry_msgs::msg::TransformStamped transform;
@@ -186,6 +275,15 @@ protected:
     return false;
   }
 
+  /**
+   * @brief Express a pose known in earth as the odom to base_link transform.
+   *
+   * @param earth_to_baselink Pose of the vehicle in earth.
+   * @param odom_to_baselink Output. Same pose, relative to odom.
+   * @param earth_to_map Earth to map transform.
+   * @param map_to_odom Map to odom transform. Defaults to the identity.
+   * @return true always, the conversion cannot fail.
+   */
   bool convert_earth_to_baselink_2_odom_to_baselink_transform(
     const tf2::Transform & earth_to_baselink,
     tf2::Transform & odom_to_baselink,
@@ -196,6 +294,15 @@ protected:
     return true;
   }
 
+  /**
+   * @brief Express a pose known in odom as the earth to base_link transform.
+   *
+   * @param odom_to_baselink Pose of the vehicle in odom.
+   * @param earth_to_baselink Output. Same pose, relative to earth.
+   * @param earth_to_map Earth to map transform.
+   * @param map_to_odom Map to odom transform. Defaults to the identity.
+   * @return true always, the conversion cannot fail.
+   */
   bool convert_odom_to_baselink_2_earth_to_baselink_transform(
     const tf2::Transform & odom_to_baselink,
     tf2::Transform & earth_to_baselink,

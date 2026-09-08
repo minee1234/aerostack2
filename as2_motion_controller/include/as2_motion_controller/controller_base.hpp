@@ -63,10 +63,25 @@ namespace as2_motion_controller_plugin_base
 class ControllerBase
 {
 public:
+  /**
+   * @brief Construct the Controller Base object. The plugin is only usable
+   * after initialize().
+   */
   ControllerBase() = default;
+
+  /**
+   * @brief Destroy the Controller Base object.
+   */
   virtual ~ControllerBase() = default;
 
+  /**
+   * @brief Not copyable: the plugin holds the node it was initialized with.
+   */
   ControllerBase(const ControllerBase &) = delete;
+
+  /**
+   * @brief Not copy assignable, for the same reason.
+   */
   ControllerBase & operator=(const ControllerBase &) = delete;
 
   // API for ControllerHandler / ControllerManager
@@ -97,13 +112,6 @@ public:
    * @param tf_handler Non-owning pointer to the TfHandler instance.
    */
   void setTfHandler(as2::tf::TfHandler * tf_handler) {tf_handler_ = tf_handler;}
-
-  /**
-   * @brief Set the namespaced FLU (base_link) frame id used by the controller node.
-   *
-   * @param frame_id Fully-qualified base_link frame id.
-   */
-  void setBaseLinkFrameId(const std::string & frame_id) {base_link_frame_id_ = frame_id;}
 
   /**
    * @brief Set the per-plugin parameter namespace (e.g. "pid_speed_controller").
@@ -487,11 +495,6 @@ protected:
   as2::tf::TfHandler * getTfHandler() const {return tf_handler_;}
 
   /**
-   * @brief Namespaced frame id of the body FLU/base_link frame.
-   */
-  const std::string & getBaseLinkFrameId() const {return base_link_frame_id_;}
-
-  /**
    * @brief Per-plugin parameter namespace (e.g. "pid_speed_controller").
    */
   const std::string & getPluginParamNamespace() const {return plugin_param_namespace_;}
@@ -531,35 +534,31 @@ private:
   // Implementation details
 
   /**
-   * @brief Declare and read the desired_pose_frame / desired_twist_frame parameters.
+   * @brief Declare and read the desired_pose_frame_id / desired_twist_frame_id parameters.
    *
+   * Empty takes the canonical frames of the node, which are already namespaced.
    * Stores their namespaced values in desired_pose_frame_id_ and
    * desired_twist_frame_id_.
    */
   void declareFrameParameters()
   {
-    if (!node_ptr_->has_parameter("desired_pose_frame")) {
-      node_ptr_->declare_parameter<std::string>("desired_pose_frame", "odom");
-    }
-    if (!node_ptr_->has_parameter("desired_twist_frame")) {
-      node_ptr_->declare_parameter<std::string>("desired_twist_frame", "base_link");
-    }
     const std::string pose_param =
-      node_ptr_->get_parameter("desired_pose_frame").as_string();
+      node_ptr_->getParameter<std::string>("desired_pose_frame", "");
     const std::string twist_param =
-      node_ptr_->get_parameter("desired_twist_frame").as_string();
-    desired_pose_frame_id_ = as2::tf::generateTfName(node_ptr_, pose_param);
-    desired_twist_frame_id_ = as2::tf::generateTfName(node_ptr_, twist_param);
+      node_ptr_->getParameter<std::string>("desired_twist_frame", "");
+    desired_pose_frame_id_ = pose_param.empty() ?
+      node_ptr_->getOdomFrameId() : as2::tf::generateTfName(node_ptr_, pose_param);
+    desired_twist_frame_id_ = twist_param.empty() ?
+      node_ptr_->getBaseFrameId() : as2::tf::generateTfName(node_ptr_, twist_param);
     RCLCPP_INFO(
       node_ptr_->get_logger(),
-      "Controller desired_pose_frame = '%s', desired_twist_frame = '%s'",
+      "Controller desired_pose_frame_id = '%s', desired_twist_frame_id = '%s'",
       desired_pose_frame_id_.c_str(), desired_twist_frame_id_.c_str());
   }
 
   // Node and configuration injected from outside the plugin.
   as2::Node * node_ptr_ = nullptr;
   as2::tf::TfHandler * tf_handler_ = nullptr;
-  std::string base_link_frame_id_;
   std::string plugin_param_namespace_;
   std::string desired_pose_frame_id_;
   std::string desired_twist_frame_id_;

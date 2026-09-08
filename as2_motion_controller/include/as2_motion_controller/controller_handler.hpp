@@ -69,7 +69,6 @@ namespace controller_handler
 {
 
 #define MATCH_ALL 0b11111111
-#define MATCH_MODE_AND_FRAME 0b11110011
 #define MATCH_MODE 0b11110000
 #define MATCH_MODE_AND_YAW 0b11111100
 
@@ -102,6 +101,9 @@ public:
     as2::Node * node,
     as2::tf::TfHandler * tf_handler);
 
+  /**
+   * @brief Destroy the Controller Handler object.
+   */
   virtual ~ControllerHandler() {}
 
   /**
@@ -151,13 +153,10 @@ private:
   std::vector<uint8_t> controller_available_modes_out_;
   std::vector<uint8_t> platform_available_modes_in_;
 
-  // Frame ids
-  std::string enu_frame_id_ = "odom";
-  std::string flu_frame_id_ = "base_link";
-  std::string input_pose_frame_id_ = "odom";
-  std::string input_twist_frame_id_ = "odom";
-  std::string output_pose_frame_id_ = "odom";
-  std::string output_twist_frame_id_ = "odom";
+  // Frame ids of the state and of the references the plugin works with
+  std::string base_frame_id_;
+  std::string input_pose_frame_id_;
+  std::string input_twist_frame_id_;
 
   // TF handler. Owned by ControllerManager and shared with the plugin.
   as2::tf::TfHandler * tf_handler_;
@@ -314,14 +313,6 @@ private:
   void controlTimerCallback();
 
   // Internal methods
-
-  /**
-   * @brief Map a control-mode reference-frame enum to the corresponding TF frame id.
-   *
-   * @param reference_frame Reference-frame enum from as2_msgs::msg::ControlMode.
-   * @return Fully-qualified TF frame id.
-   */
-  std::string getFrameIdByReferenceFrame(uint8_t reference_frame);
 
   /**
    * @brief Find a controller output mode that matches the platform's input mode.

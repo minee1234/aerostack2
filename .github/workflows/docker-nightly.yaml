@@ -1,8 +1,9 @@
-name: docker_release
+name: docker-nightly
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
 
 jobs:
   docker:
@@ -22,14 +23,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./docker/humble
+          context: .
+          file: docker/humble/Dockerfile
           push: true
-          tags: aerostack2/humble:latest, aerostack2/humble:${{ github.event.release.name }}
-
-      - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: aerostack2/humble
-
+          tags: aerostack2/nightly-humble:latest, aerostack2/nightly-humble:${{ github.sha }}
