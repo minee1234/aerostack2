@@ -122,6 +122,33 @@ public:
     return true;
   }
 
+  /// Stamp the reference with the publish time, then send it.
+  ///
+  /// The struct overload of sendPositionCommandWithYawAngle() forwards
+  /// header.stamp untouched (position_motion.cpp:106), unlike the scalar
+  /// overload which restamps on every call (position_motion.cpp:99).
+  /// desired_pose_ / desired_twist_ are only stamped in updateDesiredPose(),
+  /// i.e. when the target waypoint changes. own_run() republishes them at the
+  /// behavior rate, so between two waypoints every message carries the same
+  /// ageing stamp while the data itself is current.
+  ///
+  /// Downstream consumers that gate on reference freshness then see a dead
+  /// publisher and fall back to a hold or to a minimum speed limit, which in
+  /// turn keeps the drone from reaching the next waypoint - so the stamp never
+  /// advances. Measured on an ArduPilot SITL run: header.stamp frozen for 489 s
+  /// at a steady 10 Hz publish rate.
+  ///
+  /// GoTo, Takeoff and FollowReference do not hit this because they call the
+  /// scalar overload. This makes FollowPath behave the same way.
+  bool sendDesiredReference()
+  {
+    const auto stamp = node_ptr_->now();
+    desired_pose_.header.stamp = stamp;
+    desired_twist_.header.stamp = stamp;
+    return position_motion_handler_->sendPositionCommandWithYawAngle(
+      desired_pose_, desired_twist_);
+  }
+
   void own_execution_end(const as2_behavior::ExecutionStatus & state) override
   {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path end");
@@ -129,7 +156,7 @@ public:
     path_ids_remaining_.clear();
     if (state == as2_behavior::ExecutionStatus::SUCCESS) {
       // Leave the drone in the last position
-      position_motion_handler_->sendPositionCommandWithYawAngle(desired_pose_, desired_twist_);
+      sendDesiredReference();
       return;
     }
     sendHover();
@@ -144,7 +171,7 @@ public:
       return as2_behavior::ExecutionStatus::SUCCESS;
     }
 
-    if (!position_motion_handler_->sendPositionCommandWithYawAngle(desired_pose_, desired_twist_)) {
+    if (!sendDesiredReference()) {
       return as2_behavior::ExecutionStatus::FAILURE;
     }
 
